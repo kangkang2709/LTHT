@@ -13,11 +13,11 @@
       type="number"
       min="0"
       placeholder="Price"
-      class="w-36 px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-gray-700 placeholder-gray-400"
+      class="w-full sm:w-36 px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-gray-700 placeholder-gray-400"
     />
     <button
       @click="handleAdd"
-      class="px-6 py-2.5 rounded-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md hover:shadow-lg transition-all"
+      class="px-6 py-2.5 rounded-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md hover:shadow-lg transition-all w-full sm:w-auto"
     >
       ➕ Add
     </button>

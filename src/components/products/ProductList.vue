@@ -1,63 +1,121 @@
 <template>
   <div>
-    <!-- Debug: bật nếu cần xem dữ liệu -->
-    <!-- <pre class="mb-4 text-xs text-gray-500">{{ products }}</pre> -->
-
-    <ul
-      v-if="products.length"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+    <vue3-confirm-dialog></vue3-confirm-dialog>
+    <table
+      class="w-full border-collapse text-left rounded-lg overflow-hidden shadow"
     >
-      <li
-        v-for="p in products"
-        :key="p.id"
-        class="group relative bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:shadow-md transition transform hover:-translate-y-1"
-      >
-        <!-- Nội dung -->
-        <div class="flex flex-col">
-          <strong class="text-gray-800 text-lg font-semibold truncate">
-            {{ p.name || "(no name)" }}
-          </strong>
-          <span class="text-gray-500 mt-1 text-sm">
-            ${{
-              typeof p.price === "number" ? p.price.toFixed(2) : p.price || "-"
-            }}
-          </span>
-        </div>
-
-        <!-- Nút thao tác -->
-        <div
-          class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 flex gap-2 transition-opacity"
+      <thead class="bg-indigo-50">
+        <tr>
+          <th class="p-3 border-b text-gray-600">#</th>
+          <th class="p-3 border-b text-gray-600">Name</th>
+          <th class="p-3 border-b text-gray-600">Price ($)</th>
+          <th class="p-3 border-b text-gray-600">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="(product, index) in products"
+          :key="product.id"
+          class="bg-white hover:bg-gray-50 transition"
         >
-          <button
-            @click="$emit('edit', p)"
-            class="p-1.5 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 transition"
-            title="Edit"
-          >
-            ✏️
-          </button>
-          <button
-            @click="$emit('remove', p.id)"
-            class="p-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 transition"
-            title="Delete"
-          >
-            🗑️
-          </button>
-        </div>
-      </li>
-    </ul>
+          <td class="p-3 border-b">{{ (page - 1) * pageSize + index + 1 }}</td>
+          <td class="p-3 border-b">{{ product.name }}</td>
+          <td class="p-3 border-b">{{ product.price.toFixed(2) }}</td>
+          <td class="p-3 border-b flex gap-2">
+            <!-- Edit Button -->
+            <button
+              @click="$emit('edit', product)"
+              class="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              aria-label="Edit product"
+            >
+              ✏️
+            </button>
 
-    <!-- Khi chưa có sản phẩm -->
-    <p v-else class="text-center text-gray-400 py-10 text-sm">
-      No products yet. Add one above!
-    </p>
+            <!-- Delete Button with confirm -->
+            <button
+              @click="confirmDelete(product.id)"
+              class="p-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+              aria-label="Delete product"
+            >
+              🗑️
+            </button>
+          </td>
+        </tr>
+
+        <tr v-if="products.length === 0">
+          <td colspan="4" class="p-4 text-center text-gray-400">
+            No products on this page.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <nav class="flex justify-between items-center mt-4" aria-label="Pagination">
+      <button
+        @click="prevPage"
+        :disabled="page <= 1"
+        class="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition"
+      >
+        ⬅️ Previous
+      </button>
+      <span class="text-gray-600">Page {{ page }} of {{ totalPages }}</span>
+      <button
+        @click="nextPage"
+        :disabled="page >= totalPages"
+        class="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition"
+      >
+        Next ➡️
+      </button>
+    </nav>
   </div>
 </template>
 
-<script setup>
-defineProps({
-  products: {
-    type: Array,
-    required: true,
+<script>
+export default {
+  name: "ProductList",
+  props: {
+    products: {
+      type: Array,
+      required: true,
+    },
+    page: {
+      type: Number,
+      default: 1,
+    },
+    pageSize: {
+      type: Number,
+      default: 5,
+    },
+    total: {
+      type: Number,
+      default: 0,
+    },
   },
-});
+  computed: {
+    totalPages() {
+      return Math.max(1, Math.ceil(this.total / this.pageSize));
+    },
+  },
+  methods: {
+    prevPage() {
+      if (this.page > 1) this.$emit("changePage", this.page - 1);
+    },
+    nextPage() {
+      if (this.page < this.totalPages) this.$emit("changePage", this.page + 1);
+    },
+    confirmDelete(id) {
+      this.$confirm({
+        message: "Are you sure?",
+        button: {
+          no: "No",
+          yes: "Yes",
+        },
+        callback: (confirmed) => {
+          if (confirmed) this.$emit("remove", id);
+        },
+      });
+    },
+  },
+};
 </script>

@@ -1,11 +1,11 @@
 <template>
-  <div
-    class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex flex-col items-center py-12 px-4"
+  <main
+    class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex flex-col items-center py-6 px-4 md:py-12"
   >
     <!-- Header -->
-    <header class="w-full max-w-4xl mb-10 text-center">
+    <header class="w-full max-w-4xl mb-6 md:mb-10 text-center">
       <h1
-        class="text-4xl font-semibold text-gray-800 tracking-tight flex items-center justify-center gap-2"
+        class="text-3xl md:text-4xl font-bold text-gray-800 tracking-tight flex items-center justify-center gap-2"
       >
         🛍️
         <span
@@ -13,41 +13,33 @@
           >Product Dashboard</span
         >
       </h1>
-      <p class="text-gray-500 mt-2 text-sm">
-        Manage products with style and simplicity
-      </p>
     </header>
 
-    <!-- Dashboard Wrapper -->
-    <div
-      class="w-full max-w-4xl bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-6 space-y-8 transition-all duration-300"
+    <section
+      class="w-full max-w-4xl bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-6 space-y-6 md:space-y-8 transition-all"
     >
-      <!-- Form -->
-      <section>
-        <ProductForm @add="addProduct" />
-      </section>
+      <!-- Product Form -->
+      <ProductForm @add="addProduct" />
 
       <!-- Product List -->
-      <section v-if="products.length > 0">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-medium text-gray-700 flex items-center gap-2">
-            📦 <span>Product List</span>
-          </h2>
-          <span class="text-sm text-gray-400">{{ products.length }} items</span>
-        </div>
+      <section v-if="allProducts.length > 0" class="overflow-x-auto">
         <ProductList
           :products="products"
-          @remove="removeProduct"
+          :page="page"
+          :pageSize="pageSize"
+          :total="total"
           @edit="startEdit"
+          @remove="removeProduct"
+          @changePage="goToPage"
         />
       </section>
 
       <!-- Empty State -->
       <section v-else class="text-center py-12 text-gray-400">
-        <p class="text-base">No products yet. Add one above!</p>
+        <p class="text-lg">No products yet. Add one above!</p>
       </section>
 
-      <!-- Editor -->
+      <!-- Editor Overlay -->
       <transition name="fade">
         <ProductEditor
           v-if="editMode"
@@ -56,19 +48,37 @@
           @cancel="cancelEdit"
         />
       </transition>
-    </div>
-  </div>
+    </section>
+  </main>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useProducts } from "../composables/useProducts";
 import ProductForm from "../components/products/ProductForm.vue";
 import ProductList from "../components/products/ProductList.vue";
 import ProductEditor from "../components/products/ProductEditor.vue";
 
-const { products, addProduct, removeProduct, updateProduct } = useProducts();
+const { allProducts, addProduct, removeProduct, updateProduct } = useProducts();
 
+// Pagination
+const page = ref(1);
+const pageSize = ref(5);
+const total = computed(() => allProducts.value.length);
+
+const products = computed(() => {
+  const start = (page.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return allProducts.value.slice(start, end);
+});
+
+function goToPage(p) {
+  if (p >= 1 && p <= Math.ceil(total.value / pageSize.value)) {
+    page.value = p;
+  }
+}
+
+// Edit state
 const editMode = ref(false);
 const editItem = ref(null);
 
