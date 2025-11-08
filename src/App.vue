@@ -8,7 +8,7 @@
       <div
         class="h-20 flex items-center justify-center border-b border-gray-200"
       >
-        <h1 class="text-2xl font-bold text-indigo-600">Dashboard</h1>
+        <h1 class="text-2xl font-bold text-indigo-600">Trang chủ</h1>
       </div>
 
       <!-- Navigation Items -->
@@ -21,7 +21,7 @@
               active-class="bg-indigo-100 text-indigo-900 font-semibold"
             >
               <HomeIcon class="h-5 w-5 mr-3" />
-              Home
+              Thống Kê
             </router-link>
           </li>
 
@@ -32,7 +32,7 @@
               active-class="bg-indigo-100 text-indigo-900 font-semibold"
             >
               <CogIcon class="h-5 w-5 mr-3" />
-              Settings
+              Tính toán
             </router-link>
           </li>
         </ul>
@@ -43,9 +43,7 @@
     <div class="flex-1 flex flex-col min-h-screen">
       <!-- Header (full width of main area) -->
       <header class="bg-white shadow-sm py-4 px-8 border-b border-gray-200">
-        <h1 class="text-2xl font-semibold text-gray-800">
-          Welcome to Dashboard
-        </h1>
+        <h1 class="text-2xl font-semibold text-gray-800">Lò xấy lúa</h1>
       </header>
 
       <!-- Content Area (chiếm toàn bộ phần còn lại bên phải sidebar) -->

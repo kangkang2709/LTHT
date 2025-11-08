@@ -116,7 +116,7 @@
             @click="addQuantity(product)"
             class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 w-full text-sm mt-1"
           >
-            Thêm
+            Thêm số lượng
           </button>
         </div>
 
@@ -242,7 +242,7 @@ export default {
       // Hiển thị confirm
       this.$confirm({
         message: "Bạn có chắc chắn muốn lưu dữ liệu?",
-        button: { yes: "Yes", no: "No" },
+        button: { yes: "Đúng", no: "Không" },
         callback: async (confirmed) => {
           if (!confirmed) {
             toast.info("Đã hủy lưu dữ liệu");
@@ -250,10 +250,10 @@ export default {
           }
 
           // Log dữ liệu ra console trước khi lưu
-          console.log(
-            "Dữ liệu sắp lưu:",
-            JSON.stringify(this.products, null, 2)
-          );
+          // console.log(
+          //   "Dữ liệu sắp lưu:",
+          //   JSON.stringify(this.products, null, 2)
+          // );
 
           try {
             const fb = useFirebase();

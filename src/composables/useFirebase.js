@@ -1,15 +1,7 @@
 // composables/useFirebase.js
 import { ref, computed } from "vue";
 import { db } from "../config/firebase";
-import {
-    collection,
-    getDocs,
-    addDoc,
-    query,
-    orderBy,
-    limit,
-    startAfter,
-} from "firebase/firestore";
+import { collection, getDocs, addDoc, query, orderBy, limit, startAfter, doc, deleteDoc } from "firebase/firestore";
 
 export function useFirebase(defaultPageSize = 10) {
     // --- State ---
@@ -81,6 +73,16 @@ export function useFirebase(defaultPageSize = 10) {
         }))
     );
 
+    const deleteRecordById = async (id) => {
+        try {
+            const refDoc = doc(db, "allUserData", id); // trỏ đúng collection
+            await deleteDoc(refDoc);
+            console.log("Xoá thành công", id);
+        } catch (error) {
+            console.error("Xoá thất bại:", error);
+            throw error;
+        }
+    };
     // --- Get record by ID ---
     const getRecordById = (recordId) => {
         selectedRecord.value = allRecords.value.find((r) => r.id === recordId) || null;
@@ -98,7 +100,6 @@ export function useFirebase(defaultPageSize = 10) {
             .filter((p) => p.totalQty > 0);
 
         if (productsFiltered.length === 0) {
-            alert("Không có sản phẩm hợp lệ để lưu!");
             return null;
         }
 
@@ -111,14 +112,15 @@ export function useFirebase(defaultPageSize = 10) {
         try {
             const docRef = await addDoc(collection(db, "allUserData"), record);
             console.log("Saved record with ID:", docRef.id);
-            alert("Đã lưu dữ liệu vào Firebase!");
             await fetchPage(1); // reload first page
             return docRef.id;
         } catch (e) {
             console.error("Error saving record:", e);
-            alert("Lưu dữ liệu thất bại!");
             return null;
         }
+
+
+
     };
 
     return {
@@ -138,6 +140,7 @@ export function useFirebase(defaultPageSize = 10) {
         nextPage,
         prevPage,
         getRecordById,
+        deleteRecordById,
         saveRecord,
     };
 }

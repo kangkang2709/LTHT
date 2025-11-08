@@ -19,13 +19,13 @@
         </button>
       </div>
 
-      <!-- Thời gian -->
       <div class="mb-3 text-sm text-gray-600">
-        Thời gian tạo: {{ formatDate(record.createAt) }}
+        <strong>Thời gian tạo:</strong> {{ formatDate(record.createAt) }}
       </div>
 
       <!-- Nội dung in -->
       <div ref="printArea" class="print-content space-y-6">
+        <!-- Các bảng chi tiết -->
         <div
           v-for="(colChunk, colIndex) in productChunks"
           :key="colIndex"
@@ -41,17 +41,18 @@
             >
               <thead>
                 <tr>
-                  <th class="px-3 py-2 border sticky top-0 bg-white z-10">
-                    Sản phẩm
+                  <th class="px-3 py-2 border bg-gray-100 font-bold">
+                    Sản phấm / SL
                   </th>
                   <th
                     v-for="(p, pIndex) in colChunk"
                     :key="p.id || pIndex"
-                    class="px-3 py-2 border sticky top-0 bg-white z-10"
+                    class="px-3 py-2 border bg-gray-100 font-bold"
                   >
-                    --{{ p.name }}--<br />
-                    <span class="text-sm"
-                      >Giá: {{ formatCurrency(p.price) }} / {{ p.unit }}
+                    -- {{ p.name }} --<br />
+
+                    <span class="text-sm font-normal"
+                      >Giá: {{ formatCurrency(p.price) }} /{{ p.unit }}
                     </span>
                   </th>
                 </tr>
@@ -68,28 +69,24 @@
                   </td>
                 </tr>
 
-                <!-- Hiển thị tổng cho mỗi nhóm cột -->
+                <!-- Tổng cho nhóm -->
                 <template v-if="rowIndex === quantityChunks.length - 1">
-                  <tr>
-                    <td class="px-2 py-1 border font-semibold text-center">
-                      Tổng
-                    </td>
+                  <tr class="font-bold bg-gray-50">
+                    <td class="px-2 py-1 border text-center">Tổng</td>
                     <td
                       v-for="p in colChunk"
                       :key="p.id"
-                      class="px-2 py-1 border font-semibold text-center"
+                      class="px-2 py-1 border text-center"
                     >
-                      {{ p.totalQty }}
+                      {{ p.totalQty }} - {{ p.unit }}
                     </td>
                   </tr>
-                  <tr>
-                    <td class="px-2 py-1 border font-semibold text-center">
-                      Tổng tiền
-                    </td>
+                  <tr class="font-bold bg-gray-50">
+                    <td class="px-2 py-1 border text-center">Tổng tiền</td>
                     <td
                       v-for="p in colChunk"
                       :key="p.id"
-                      class="px-2 py-1 border font-semibold text-center"
+                      class="px-2 py-1 border text-center"
                     >
                       {{ formatCurrency(p.totalPrice) }}
                     </td>
@@ -98,6 +95,54 @@
               </tbody>
             </table>
           </div>
+        </div>
+
+        <!-- 📄 Trang thống kê (trang riêng cuối) -->
+        <div class="overflow-auto border rounded print-summary-page mt-6">
+          <h3 class="text-lg font-bold text-center my-3 underline">
+            TỔNG KẾT TOÀN BỘ
+          </h3>
+          <table
+            class="table-auto border-collapse border border-gray-300 w-full text-sm"
+          >
+            <thead>
+              <tr class="bg-gray-100 font-bold">
+                <th class="border px-3 py-2">#</th>
+                <th class="border px-3 py-2">Tên sản phẩm</th>
+                <th class="border px-3 py-2">Đơn vị</th>
+                <th class="border px-3 py-2">Giá</th>
+                <th class="border px-3 py-2">Tổng SL</th>
+                <th class="border px-3 py-2">Tổng tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(p, idx) in record.products" :key="idx">
+                <td class="border px-2 py-1 text-center">{{ idx + 1 }}</td>
+                <td class="border px-2 py-1">{{ p.name }}</td>
+                <td class="border px-2 py-1 text-center">{{ p.unit }}</td>
+                <td class="border px-2 py-1 text-right">
+                  {{ formatCurrency(p.price) }}
+                </td>
+                <td class="border px-2 py-1 text-right">{{ p.totalQty }}</td>
+                <td class="border px-2 py-1 text-right font-semibold">
+                  {{ formatCurrency(p.totalPrice) }}
+                </td>
+              </tr>
+
+              <!-- Tổng cộng -->
+              <tr class="bg-gray-200 font-bold">
+                <td colspan="4" class="border px-2 py-1 text-right">
+                  Tổng cộng:
+                </td>
+                <td class="border px-2 py-1 text-right">{{ totalAllQty }}</td>
+                <td class="border px-2 py-1 text-right">
+                  {{ formatCurrency(totalAllPrice) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Chữ ký -->
         </div>
       </div>
 
@@ -148,12 +193,24 @@ export default {
     },
     productChunks() {
       const chunks = [];
-      const colSize = 8;
+      const colSize = 8; // mỗi trang 8 sản phẩm
       const products = this.record.products;
       for (let i = 0; i < products.length; i += colSize) {
         chunks.push(products.slice(i, i + colSize));
       }
       return chunks;
+    },
+    totalAllQty() {
+      return this.record.products.reduce(
+        (sum, p) => sum + (p.totalQty || 0),
+        0
+      );
+    },
+    totalAllPrice() {
+      return this.record.products.reduce(
+        (sum, p) => sum + (p.totalPrice || 0),
+        0
+      );
     },
   },
   methods: {
@@ -186,20 +243,21 @@ export default {
               @media print {
                 @page { size: A4 landscape; margin: 10mm; }
                 .print-page { page-break-after: always; }
-                .print-page:last-child { page-break-after: auto; }
+                .print-summary-page { page-break-before: always; }
                 table { width: 100%; border-collapse: collapse; }
                 th, td { border: 1px solid #ccc; padding: 4px; text-align: center; }
                 thead { background-color: #f0f0f0; display: table-header-group; }
                 tr { page-break-inside: avoid; }
+                .font-bold { font-weight: bold; }
               }
               body { font-family: Arial, sans-serif; font-size: 12px; }
-              h2 { margin-bottom: 4px; }
-              .info { margin-bottom: 8px; font-size: 13px; color: #333; }
+              h2 { font-weight: bold; }
+              h3 { font-weight: bold; text-decoration: underline; }
             </style>
           </head>
           <body>
             <h2>Chi tiết người dùng: ${this.record.username}</h2>
-            <div class="info">Thời gian tạo: ${this.formatDate(
+            <div><strong>Thời gian tạo:</strong> ${this.formatDate(
               this.record.createAt
             )}</div>
             ${printArea}
