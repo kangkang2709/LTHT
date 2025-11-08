@@ -1,65 +1,101 @@
 // composables/useFirebase.js
 import { ref, computed } from "vue";
 import { db } from "../config/firebase";
-import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from "firebase/firestore";
+import {
+    collection,
+    getDocs,
+    addDoc,
+    query,
+    orderBy,
+    limit,
+    startAfter,
+} from "firebase/firestore";
 
-export function useFirebase() {
-
+export function useFirebase(defaultPageSize = 10) {
+    // --- State ---
     const username = ref("");
     const products = ref([]);
-    const allRecords = ref([]);
+    const allRecords = ref([]); // chỉ chứa page hiện tại
     const page = ref(1);
-    const pageSize = ref(10);
+    const pageSize = ref(defaultPageSize);
+    const totalPages = ref(0);
+    const lastVisible = ref(null); // cursor Firestore
+    const pageCursors = ref([]); // lưu cursor của từng page
+    const hasMore = ref(true);
+    const loading = ref(false);
     const selectedRecord = ref(null);
 
-    // --- Fetch all records ---
-    const fetchAllRecords = async () => {
+    // --- Fetch a specific page ---
+    const fetchPage = async (pageNum = 1) => {
+        loading.value = true;
         try {
-            const querySnapshot = await getDocs(collection(db, "allUserData"));
-            allRecords.value = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            allRecords.value.sort((a, b) => new Date(b.createAt) - new Date(a.createAt));
+            let q;
+            const col = collection(db, "allUserData");
+
+            if (pageNum === 1) {
+                q = query(col, orderBy("createAt", "desc"), limit(pageSize.value));
+            } else {
+                const cursor = pageCursors.value[pageNum - 2]; // cursor của page trước
+                if (!cursor) {
+                    console.warn("No cursor for previous page, cannot fetch this page");
+                    loading.value = false;
+                    return;
+                }
+                q = query(col, orderBy("createAt", "desc"), startAfter(cursor), limit(pageSize.value));
+            }
+
+            const snapshot = await getDocs(q);
+
+            // set page records
+            allRecords.value = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            lastVisible.value = snapshot.docs[snapshot.docs.length - 1] || null;
+
+            // lưu cursor cho page hiện tại
+            pageCursors.value[pageNum - 1] = lastVisible.value;
+
+            page.value = pageNum;
+            hasMore.value = snapshot.docs.length === pageSize.value;
+            totalPages.value = pageNum + (hasMore.value ? 1 : 0);
         } catch (e) {
-            console.error("Failed to fetch records:", e);
+            console.error("Failed to fetch page:", e);
+        } finally {
+            loading.value = false;
         }
+    };
+
+    const nextPage = () => {
+        if (!hasMore.value || loading.value) return;
+        fetchPage(page.value + 1);
+    };
+
+    const prevPage = () => {
+        if (page.value <= 1 || loading.value) return;
+        fetchPage(page.value - 1);
     };
 
     // --- Combo box options ---
     const userOptions = computed(() =>
-        allRecords.value.map(r => ({
+        allRecords.value.map((r) => ({
             id: r.id,
             label: `${r.username} – ${new Date(r.createAt).toLocaleString()}`,
         }))
     );
 
-    // --- Paging ---
-    const totalPages = computed(() => Math.ceil(allRecords.value.length / pageSize.value));
-    const pagedRecords = computed(() => {
-        const start = (page.value - 1) * pageSize.value;
-        return allRecords.value.slice(start, start + pageSize.value);
-    });
-
-    const nextPage = () => { if (page.value < totalPages.value) page.value++; };
-    const prevPage = () => { if (page.value > 1) page.value--; };
-
-    // --- Get full record by ID ---
+    // --- Get record by ID ---
     const getRecordById = (recordId) => {
-        selectedRecord.value = allRecords.value.find(r => r.id === recordId) || null;
+        selectedRecord.value = allRecords.value.find((r) => r.id === recordId) || null;
     };
 
     // --- Save new record ---
-    const saveRecord = async (username, products) => {
-        // Lọc quantity >0 và tính tổng
-        const productsFiltered = products
-            .map(p => {
-                const quantities = p.quantities.filter(q => q > 0);
+    const saveRecord = async (usernameVal, productsVal) => {
+        const productsFiltered = productsVal
+            .map((p) => {
+                const quantities = p.quantities.filter((q) => q > 0);
                 const totalQty = quantities.reduce((a, b) => a + b, 0);
                 const totalPrice = totalQty * (p.price || 0);
                 return { ...p, quantities, totalQty, totalPrice };
             })
-            .filter(p => p.totalQty > 0);
+            .filter((p) => p.totalQty > 0);
 
         if (productsFiltered.length === 0) {
             alert("Không có sản phẩm hợp lệ để lưu!");
@@ -67,7 +103,7 @@ export function useFirebase() {
         }
 
         const record = {
-            username,
+            username: usernameVal,
             createAt: new Date().toISOString(),
             products: productsFiltered,
         };
@@ -76,7 +112,7 @@ export function useFirebase() {
             const docRef = await addDoc(collection(db, "allUserData"), record);
             console.log("Saved record with ID:", docRef.id);
             alert("Đã lưu dữ liệu vào Firebase!");
-            await fetchAllRecords(); // cập nhật lại allRecords
+            await fetchPage(1); // reload first page
             return docRef.id;
         } catch (e) {
             console.error("Error saving record:", e);
@@ -92,13 +128,16 @@ export function useFirebase() {
         page,
         pageSize,
         totalPages,
-        pagedRecords,
         selectedRecord,
+        lastVisible,
+        pageCursors,
+        hasMore,
+        loading,
         userOptions,
-        fetchAllRecords,
-        getRecordById,
+        fetchPage,
         nextPage,
         prevPage,
-        saveRecord,  // <-- đây là hàm lưu dữ liệu mới
+        getRecordById,
+        saveRecord,
     };
 }
